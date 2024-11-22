@@ -1,53 +1,35 @@
-import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
-import { useRef, useState } from "react";
-import {
-  Alert,
-  Button,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import Camera from "@/components/atoms/camera";
+import { CameraPictureOptions } from "expo-camera";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { StyleSheet, View } from "react-native";
 
 export default function TestCameraScreen() {
-  const [facing, setFacing] = useState<CameraType>("back");
-  const [permission, requestPermission] = useCameraPermissions();
-  const ref = useRef<CameraView>(null);
+  const [previewURIs, setPreviewURIs] = useState<string[]>([]);
+  const router = useRouter();
 
-  if (!permission) {
-    // Camera permissions are still loading.
-    return <View />;
-  }
+  const cameraPictureOptions: CameraPictureOptions = {
+    onPictureSaved(picture) {
+      setPreviewURIs((preState) => [...preState, picture.uri]);
+    },
+  };
 
-  if (!permission.granted) {
-    // Camera permissions are not granted yet.
-    return (
-      <View style={styles.container}>
-        <Text style={styles.message}>
-          We need your permission to show the camera
-        </Text>
-        <Button onPress={requestPermission} title="grant permission" />
-      </View>
-    );
-  }
-
-  async function onTakePictureAsync() {
-    await ref.current?.takePictureAsync({
-      onPictureSaved: () => {
-        Alert.alert("I have a photo");
+  const goToPhotoScreen = () => {
+    router.push({
+      pathname: `/(tabs)/test-camera-photos`,
+      params: {
+        previewURIs: JSON.stringify(previewURIs),
       },
     });
-  }
+  };
 
   return (
     <View style={styles.container}>
-      <CameraView style={styles.camera} facing={facing} ref={ref}>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={onTakePictureAsync}>
-            <Text style={styles.text}>Take Photo</Text>
-          </TouchableOpacity>
-        </View>
-      </CameraView>
+      <Camera
+        previewURI={previewURIs[previewURIs.length - 1]}
+        cameraPictureOptions={cameraPictureOptions}
+        onThumbnailPress={goToPhotoScreen}
+      />
     </View>
   );
 }
@@ -55,29 +37,5 @@ export default function TestCameraScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-  },
-  message: {
-    textAlign: "center",
-    paddingBottom: 10,
-  },
-  camera: {
-    flex: 1,
-  },
-  buttonContainer: {
-    flex: 1,
-    flexDirection: "row",
-    backgroundColor: "transparent",
-    margin: 64,
-  },
-  button: {
-    flex: 1,
-    alignSelf: "flex-end",
-    alignItems: "center",
-  },
-  text: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "white",
   },
 });
